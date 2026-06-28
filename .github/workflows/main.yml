@@ -21,11 +21,17 @@ jobs:
         with:
           submodules: true
 
-      - name: Remove ServerName check in cert.go
+      - name: Patch cert.go remove hostname check
         run: |
+          set -e
           cd tailscale
-          sed -i '/hi.ServerName != m.hostname/,+2d' cmd/derper/cert.go
-          cat cmd/derper/cert.go | grep -C 10 'hi.ServerName != m.hostname'
+          # 精确删除整块if判断语句
+          sed -i '/if hi.ServerName != m.hostname {/,/}/d' cmd/derper/cert.go
+          # 校验删除结果
+          if grep -q 'hi.ServerName != m.hostname' cmd/derper/cert.go; then
+            echo "ERROR: 补丁未生效"
+            exit 1
+          fi
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
